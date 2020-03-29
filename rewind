@@ -1,0 +1,186 @@
+#!/data/data/com.termux/files/usr/bin/bash
+
+#********************************************#
+#                                            #
+#  Rewind v1.0                               #
+#  A CLI tool to backup and restore termux   #
+#  Authered by Laraib07                      #
+#                                            #
+#********************************************#
+
+
+#variables
+BACKUP_SOURCE='/data/data/com.termux/files'
+BACKUP_DESTINATION='/storage/emulated/0/Termux/Backup'
+NULL='/dev/null'
+
+#colors
+R='\033[1;31m'
+G='\033[1;32m'
+W='\033[1;37m'
+off='\033[0m'
+t='        '
+OK='\033[1;37m[\033[1;32m OK \033[1;37m]'
+NOK='\033[1;37m[\033[1;31m !! \033[1;37m]'
+
+termux-setup-storage
+
+banner()
+{
+clear
+echo
+echo -e " $W╭────────────────────────────────────╮"
+echo -e " │ $R   █▀▀█ █▀▀  █   █  ▀  █▀▀▄ █▀▀▄ $W  ├─╮"
+echo -e " │ $R   █▄▄▀ █▀▀  █▄█▄█ ▀█▀ █  █ █  █ $W  │ │"
+echo -e " │ $R   ▀ ▀▀ ▀▀▀   ▀ ▀  ▀▀▀ ▀  ▀ ▀▀▀  $W  │ │"
+echo -e " ╰─┬──────────────────────────────────╯ │ "
+echo -e "   ╰────────────────────────────────────╯"
+echo 
+}
+
+help()
+{
+	echo -ne "${off}\r"
+	echo -e "Usage: ${W}rewind${off} [options] "
+	echo -e "  -h   --help         print this usage and exit"
+	echo -e "  -v   --version      print version"
+	echo -e "  -b   --backup       take termux backup"
+	echo -e "  -r   --restore      restore texmux"
+
+}
+
+version()
+{
+	echo -ne "${off}\r"
+	echo "rewind v1.0"
+	echo "A CLI tool to backup and restore termux"
+	echo "authered by Laraib"
+
+}
+
+backup()
+{
+	banner
+
+	if [ ! -d $BACKUP_DESTINATION ]
+	then
+		mkdir -p $BACKUP_DESTINATION
+	fi
+
+	echo -e " $NOK Backing up termux..."
+	sleep 1
+	echo -e "${t}${W}Be patient!!!"
+
+	cd $BACKUP_SOURCE/
+
+	tar -czf termux.backup usr home && mv termux.backup $BACKUP_DESTINATION/  
+	
+	echo -e " $OK Termux backed up!!!"
+	echo -e "\a"
+}
+
+restore()
+{
+	banner
+
+	if [ -e $BACKUP_DESTINATION/termux.backup ]
+	then
+
+		echo -e " $NOK Restoring termux..."
+		cd $BACKUP_SOURCE
+		cp $BACKUP_DESTINATION/termux.backup .
+		
+		sleep 1
+		echo -e "${t}Be patient!!!"
+
+		chmod 777 termux.backup
+		tar -xzf termux.backup
+		rm -rf termux.backup
+
+		echo -e " $OK Termux restored!!!"
+		echo -e "${t}${W}Restart Termux."
+		echo -e "\a"
+
+	else
+		echo -e " $NOK No backup found."
+
+		exit 1
+	fi
+
+
+}
+
+dependency()
+{
+	if  ! [[ $(which tar) && $(which tput) ]]
+	then
+		if ping -q -w 1 -c 1 www.google.com &> /dev/null; then
+
+			echo -e " $NOK Installing Depedencies..."
+			apt-get update &> $NULL && apt-get upgrade -y &> $NULL
+			apt-get install -y tar ncurses-utils &> $NULL
+
+			if  [[ $(which tar) && $(which tput) ]]
+			then
+				echo -e " $OK Dependencies Installed..."
+
+			fi
+
+		else
+			echo -e " $NOK Network connection failed"
+			echo -e " $NOK Check your network connection and try again."
+			exit 1
+		fi
+
+	fi
+}
+
+signal()
+{
+	[[ -f $BACKUP_SOURCE/termux.backup ]] && rm -f $BACKUP_SOURCE/termux.backup
+	echo -e "\n $NOK Programme terminated unexpectedly."
+	tput cvvis
+	exit 1
+}
+
+trap signal 1 2 3 15 20
+
+
+if [ ! $# == 0 ]
+then
+	dependency
+
+	tput civis
+
+	case $1 in
+		"-h" | "--help" )
+
+			help ;;
+
+		"-v" | "--version" )
+
+			version ;;
+
+		"-r" | "--restore" )
+
+			restore ;;
+
+		"-b" | "--backup" )
+			backup ;;
+
+		* )
+			echo -e " $NOK Invalid option"
+			echo
+
+			help
+	esac
+
+else
+	echo -e " $NOK No options provided."
+	echo -e "${off}try 'rewind --help' or 'rewind -h' for help."
+fi
+
+tput cvvis
+
+exit 0
+
