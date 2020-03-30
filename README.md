@@ -1,14 +1,14 @@
 # Rewind
----
+
 ![rewind](https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind.png)
 
 Simple bash script to backup and
 restore termux(an android terminal emulator).
 
-###created by [Laraib07](https://github.com/laraib07)
+### created by [Laraib07](https://github.com/laraib07)
 
-##Installation
----
+## Installation
+
 Just copy paste this in your termux.
 
 1.
@@ -36,7 +36,7 @@ curl -O https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewi
 ```
 
 ## Usage
----
+
 Usage : **rewind**  [option]
 
 option |  long-option  | output
