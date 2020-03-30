@@ -39,7 +39,7 @@ curl -O https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewi
 
 Usage : **rewind**  [option]
 
-option |  long-option  | output
+option |  long-option  | Description
 :-----:|:-----------:|:---------------------------:
   -h   |  --help      |    print this usage and exit
   -v   |  --version   |    print version
