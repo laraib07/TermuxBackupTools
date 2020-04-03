@@ -133,7 +133,7 @@ backup()
 
 restore()
 {
-        if [[ -f $BACKUP_DESTINATION/${1} ]]
+        if [[ -f $BACKUP_DESTINATION/${1}.backup ]]
         then
                 cd $BACKUP_SOURCE
                 cp $BACKUP_DESTINATION/${1}.backup .
