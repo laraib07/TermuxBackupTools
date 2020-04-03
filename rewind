@@ -97,7 +97,7 @@ backup()
                 case $reply in
                         [hubHUB] )
 	  echo
-	  echo -e " $OK Backing up termux"
+	  echo -e " $NOK Backing up termux"
 	  sleep 1
 	  echo -e "${t}Be patient!!!"
                 esac
@@ -148,7 +148,6 @@ restore()
         else
                 echo -e " $NOK ${1} backup not found." >&2
 
-                exit 1
         fi
 
 }
@@ -227,7 +226,8 @@ dependency()
 
 signal()
 {
-        [[ -f $BACKUP_SOURCE/termux.backup ]] && rm -f $BACKUP_SOURCE/termux.backup
+        [[ -f $BACKUP_SOURCE/home.backup ]] && rm -f $BACKUP_SOURCE/home.backup
+        [[ -f $BACKUP_SOURCE/usr.backup ]] && rm -f $BACKUP_SOURCE/usr.backup
         echo -e "\n $NOK Programme terminated unexpectedly." >&2
         tput cvvis
         exit 1
