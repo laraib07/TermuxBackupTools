@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v1.0                               #
+#  Rewind v2.0                               #
 #  A CLI tool to backup and restore termux   #
 #  Authered by Laraib07                      #
 #                                            #
@@ -53,7 +53,7 @@ help()
 version()
 {
         echo -ne "${off}\r"
-        echo "rewind v1.0"
+        echo "rewind v2.0"
         echo "A CLI tool to backup and restore termux"
         echo "authered by Laraib"
 
