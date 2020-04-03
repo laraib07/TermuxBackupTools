@@ -4,7 +4,7 @@
 #                                            #
 #  Rewind v2.0                               #
 #  A CLI tool to backup and restore termux   #
-#  Authered by Laraib07                      #
+#  Author : https://github.com/laraib07      #
 #                                            #
 #********************************************#
 
@@ -55,7 +55,7 @@ version()
         echo -ne "${off}\r"
         echo "rewind v2.0"
         echo "A CLI tool to backup and restore termux"
-        echo "authered by Laraib"
+        echo "Author : https://github.com/laraib07"   
 
 }
 
