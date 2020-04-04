@@ -55,7 +55,7 @@ version()
         echo -ne "${off}\r"
         echo "rewind v2.0"
         echo "A CLI tool to backup and restore termux"
-        echo "Author : https://github.com/laraib07"   
+        echo "Author : https://github.com/laraib07"
 
 }
 
@@ -100,6 +100,7 @@ backup()
 	  echo -e " $NOK Backing up termux"
 	  sleep 1
 	  echo -e "${t}Be patient!!!"
+	  ;;
                 esac
 
                 case $reply in
@@ -189,7 +190,7 @@ restore_prompt()
 	  reply="q"
 	  ;;
                         q )
-	  reply="q" 
+	  reply="q"
 	  ;;
                         * )
 	  echo -e " $NOK Invalid option" >&2
