@@ -24,7 +24,6 @@ t='        '
 OK='\033[1;37m[\033[1;32m OK \033[1;37m]'
 NOK='\033[1;37m[\033[1;31m !! \033[1;37m]'
 
-termux-setup-storage
 
 banner()
 {
@@ -205,6 +204,7 @@ install_dependencies()
             echo -e " $NOK Installing Depedencies..."
             apt-get update &> $NULL && apt-get upgrade -y &> $NULL
             apt-get install -y tar ncurses-utils &> $NULL
+            termux-setup-storage
 
             if  [[ $(which tar) && $(which tput) ]]
             then
