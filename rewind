@@ -51,7 +51,7 @@ help()
 
 version()
 {
-    echo "${off}Rewind v2.0"
+    echo -e "${off}Rewind v2.0"
     echo "A CLI tool to backup and restore termux"
     echo "Author : https://github.com/laraib07"
 
