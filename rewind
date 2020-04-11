@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v2.0                               #
+#  Rewind v3.0                               #
 #  A CLI tool to backup and restore termux   #
 #  Author : https://github.com/laraib07      #
 #                                            #
@@ -50,7 +50,7 @@ help()
 
 version()
 {
-    echo -e "${off}Rewind v2.0"
+    echo -e "${off}Rewind v3.0"
     echo "A CLI tool to backup and restore termux"
     echo "Author : https://github.com/laraib07"
 
@@ -101,16 +101,17 @@ backup()
 
         case $reply in
             h )
-                tar -czf home.backup home && mv home.backup $BACKUP_DESTINATION/
+                tar -I pigz -cf home.backup home && mv home.backup "$BACKUP_DESTINATION"
+
                 reply="q"
                 ;;
             u )
-                tar -czf usr.backup usr  && mv usr.backup $BACKUP_DESTINATION/
+                tar -I pigz -cf usr.backup usr && mv usr.backup "$BACKUP_DESTINATION"
                 reply="q"
                 ;;
             b )
-                tar -czf home.backup home && mv home.backup $BACKUP_DESTINATION/
-                tar -czf usr.backup usr  && mv usr.backup $BACKUP_DESTINATION/
+                tar -I pigz -cf home.backup home && mv home.backup "$BACKUP_DESTINATION"
+                tar -I pigz -cf usr.backup usr && mv usr.backup "$BACKUP_DESTINATION"
                 reply="q"
                 ;;
             q )
@@ -123,7 +124,7 @@ backup()
 
     if [[ $(find $BACKUP_DESTINATION -type f -name *.backup -cmin -0.05 | wc -l) -ge 1 ]]
     then
-        echo -e " $OK Termux backed up!!!"
+        echo -e "\n $OK Termux backed up!!!"
         echo -e "\a"
     fi
 }
@@ -135,7 +136,7 @@ restore()
         cd $BACKUP_SOURCE
         cp $BACKUP_DESTINATION/${1}.backup .
         chmod 777 ${1}.backup
-        tar -xzf ${1}.backup
+        tar -I pigz -xf ${1}.backup
         rm -rf ${1}.backup
 
         echo -e " $OK ${1} restored!!!"
@@ -197,13 +198,13 @@ restore_prompt()
 
 install_dependencies()
 {
-    if  ! [[ $(which tar) && $(which tput) ]]
+    if  ! [[ $(which tar) && $(which tput) && $(which pigz) ]]
     then
         if ping -q -w 1 -c 1 www.google.com &> /dev/null; then
 
             echo -e " $NOK Installing Depedencies..."
             apt-get update &> $NULL && apt-get upgrade -y &> $NULL
-            apt-get install -y tar ncurses-utils &> $NULL
+            apt-get install -y tar pigz ncurses-utils &> $NULL
             termux-setup-storage
 
             if  [[ $(which tar) && $(which tput) ]]
