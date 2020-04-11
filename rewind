@@ -94,7 +94,6 @@ backup()
             [hub] )
                 echo
                 echo -e " $NOK Backing up termux"
-                sleep 1
                 echo -e "${t}Be patient!!!"
                 ;;
         esac
