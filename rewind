@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v3.0                               #
+#  Rewind v3.1                               #
 #  A CLI tool to backup and restore termux   #
 #  Author : https://github.com/laraib07      #
 #                                            #
@@ -50,7 +50,7 @@ help()
 
 version()
 {
-    echo -e "${off}Rewind v3.0"
+    echo -e "${off}Rewind v3.1"
     echo "A CLI tool to backup and restore termux"
     echo "Author : https://github.com/laraib07"
 
