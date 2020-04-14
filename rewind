@@ -166,7 +166,6 @@ restore_prompt()
             [hub] )
                 echo
                 echo -e " $NOK Restoring termux..."
-                sleep 1
                 echo -e "${t}Be patient!!!"
         esac
 

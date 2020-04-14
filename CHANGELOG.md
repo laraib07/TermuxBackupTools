@@ -1,3 +1,7 @@
+## 3.1
+
+minor improvement.
+
 ## v3.0
 
 Now using **pigz** to backup and restore.
