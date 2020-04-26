@@ -1,9 +1,10 @@
 # Rewind - A termux backup tool
 
-![rewind](https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind.png)
-
 Simple bash script to backup and
 restore termux(an android terminal emulator).
+
+![rewind](https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind.png)
+
 
 ### created by [Laraib07](https://github.com/laraib07)
 
