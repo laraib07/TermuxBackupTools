@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v3.1                               #
+#  Rewind v4.0                               #
 #  A CLI tool to backup and restore termux   #
 #  Author : https://github.com/laraib07      #
 #                                            #
@@ -11,7 +11,7 @@
 
 #variables
 BACKUP_SOURCE='/data/data/com.termux/files'
-BACKUP_DESTINATION='/storage/emulated/0/Termux/Backup'
+BACKUP_TARGET='/storage/emulated/0/Termux/Backup'
 NULL='/dev/null'
 
 #colors
@@ -21,14 +21,15 @@ W='\033[1;37m'
 B='\033[1;34m'
 off='\033[0m'
 t='        '
-OK='\033[1;37m[\033[1;32m OK \033[1;37m]'
-NOK='\033[1;37m[\033[1;31m !! \033[1;37m]'
+OK="$W[$G OK $W]"
+NOK="$W[$R !! $W]"
 
 
 banner()
 {
+    
+    echo -e "\033[?47h\n"   #backup current screen
     clear
-    echo
     echo -e " $W╭────────────────────────────────────╮"
     echo -e " │ $R   █▀▀█ █▀▀  █   █  ▀  █▀▀▄ █▀▀▄ $W  ├─╮"
     echo -e " │ $R   █▄▄▀ █▀▀  █▄█▄█ ▀█▀ █  █ █  █ $W  │ │"
@@ -40,17 +41,17 @@ banner()
 
 help()
 {
-    echo -e "${off}Usage: ${W}rewind${off} [options] "
+    echo -e "${off} Usage: ${W}rewind${off} [options] "
     echo -e "  -h   --help         print this usage and exit"
     echo -e "  -v   --version      print version"
-    echo -e "  -b   --backup       take termux backup"
+    echo -e "  -b   --backup       backup termux"
     echo -e "  -r   --restore      restore texmux"
 
 }
 
 version()
 {
-    echo -e "${off}Rewind v3.1"
+    echo -e "${off}Rewind v4.0"
     echo "A CLI tool to backup and restore termux"
     echo "Author : https://github.com/laraib07"
 
@@ -58,28 +59,42 @@ version()
 
 backup_restore_template()
 {
-    echo -e " $NOK Select directory to $1 :"
+    echo -e " $NOK Select directory to $1 :${W}"
     echo
-    echo -e "${t}${W} [$B h$W ]  home"
-    echo -e "${t}${W} [$B u$W ]  usr"
-    echo -e "${t}${W} [$B b$W ]  both"
-    echo -e "${t}${W} [$B q$W ]  QUIT"
+    echo -e "${t} [$B h$W ]  home"
+    echo -e "${t} [$B u$W ]  usr"
+    echo -e "${t} [$B b$W ]  both"
+    echo -e "${t} [$B q$W ]  QUIT"
     echo
     echo -e " ${NOK} Enter any option(default = home) :${B} \c"
-    tput cvvis
 
 }
 
 backup()
 {
-    if [[ ! -d $BACKUP_DESTINATION ]]
+    if [[ ! -d $BACKUP_TARGET ]]
     then
-        mkdir -p $BACKUP_DESTINATION
+        mkdir -p $BACKUP_TARGET
     fi
+
+    backing_up()
+    {
+        echo -e "\033[?25l"   # hide cursor
+        echo -e " $NOK Backing up ${1}"
+        echo -e "${t}${off}Be patient!!!\n"
+
+        tar -I pigz -cf ${1}.backup ${1} && mv ${1}.backup "$BACKUP_TARGET"
+
+        if [ $? -eq 0 ]
+        then
+            echo -e " $OK ${1} backed up!!!\a"
+        fi
+
+    }
 
     cd $BACKUP_SOURCE/
 
-    while [[ "$reply" != "q" ]]
+    while true
     do
         banner
 
@@ -89,69 +104,67 @@ backup()
         reply=${reply:-"h"}
         reply=$(echo $reply | tr A-Z a-z)
 
-        tput civis
-        case $reply in
-            [hub] )
-                echo
-                echo -e " $NOK Backing up termux"
-                echo -e "${t}Be patient!!!"
-                ;;
-        esac
-
         case $reply in
             h )
-                tar -I pigz -cf home.backup home && mv home.backup "$BACKUP_DESTINATION"
+                backing_up home
+                break
+                ;;
 
-                reply="q"
-                ;;
             u )
-                tar -I pigz -cf usr.backup usr && mv usr.backup "$BACKUP_DESTINATION"
-                reply="q"
+                backing_up usr
+                break
                 ;;
+
             b )
-                tar -I pigz -cf home.backup home && mv home.backup "$BACKUP_DESTINATION"
-                tar -I pigz -cf usr.backup usr && mv usr.backup "$BACKUP_DESTINATION"
-                reply="q"
+                backing_up home
+                backing_up usr
+                break
                 ;;
+
             q )
-                reply="q" ;;
+                break ;;
+
             * )
                 echo -e " $NOK Invalid option" >&2
                 sleep 2
+
         esac
     done
 
-    if [[ $(find $BACKUP_DESTINATION -type f -name *.backup -cmin -0.05 | wc -l) -ge 1 ]]
-    then
-        echo -e "\n $OK Termux backed up!!!"
-        echo -e "\a"
-    fi
+    sleep 1   #to hold backed up msg
 }
 
 restore()
 {
-    if [[ -f $BACKUP_DESTINATION/${1}.backup ]]
-    then
-        cd $BACKUP_SOURCE
-        cp $BACKUP_DESTINATION/${1}.backup .
-        chmod 777 ${1}.backup
-        tar -I pigz -xf ${1}.backup
-        rm -rf ${1}.backup
+    restoring()
+    {
+        echo -e "\033[?25l"   # hide cursor
+        if [[ -f $BACKUP_TARGET/${1}.backup ]]
+        then
+            cd $BACKUP_SOURCE
+            # copying backup to source to avoid
+            # any permission issue or error
+            cp $BACKUP_TARGET/${1}.backup .
+            chmod 777 ${1}.backup
 
-        echo -e " $OK ${1} restored!!!"
-        echo -e "${t}${W}Start a new session."
-        echo -e "\a"
+            echo -e " $NOK Restoring ${1}..."
+            echo -e "${t}${off}Be patient!!!"
 
-    else
-        echo -e " $NOK ${1} backup not found." >&2
+            tar -I pigz -xf ${1}.backup 
+            rm -rf ${1}.backup   # remove copied backup
 
-    fi
+            echo
+            echo -e " $OK ${1} restored!!!"
+            echo -e "${t}${W}Start a new session.\a"
 
-}
+        else
+            echo -e " $NOK ${1} backup not found." >&2
 
-restore_prompt()
-{
-    while [[ "$reply" != "q" ]]
+        fi
+
+    }
+
+    while true
     do
         banner
 
@@ -161,51 +174,52 @@ restore_prompt()
         reply=${reply:-h}
         reply=$(echo $reply | tr A-Z a-z)
 
-        tput civis
-        case $reply in
-            [hub] )
-                echo
-                echo -e " $NOK Restoring termux..."
-                echo -e "${t}Be patient!!!"
-        esac
-
         case $reply in
             h )
-                restore home
-                reply="q"
+                restoring home
+                break
                 ;;
+
             u )
-                restore usr
-                reply="q"
+                restoring usr
+                break
                 ;;
+
             b )
-                restore home
-                restore usr
-                reply="q"
+                restoring home
+                restoring usr
+                break
                 ;;
+
             q )
-                reply="q"
-                ;;
+                break ;;
+
             * )
                 echo -e " $NOK Invalid option" >&2
                 sleep 2
+
         esac
+
     done
 
+    sleep 1  # hold screen after restored msg
 }
 
 install_dependencies()
 {
-    if  ! [[ $(which tar) && $(which tput) && $(which pigz) ]]
+    if  ! [[ $(which tar) && $(which pigz) ]]
     then
-        if ping -q -w 1 -c 1 www.google.com &> /dev/null; then
-
+        # checking net connection
+        if ping -q -w 1 -c 1 www.google.com &> $NULL
+        then
             echo -e " $NOK Installing Depedencies..."
-            apt-get update &> $NULL && apt-get upgrade -y &> $NULL
-            apt-get install -y tar pigz ncurses-utils &> $NULL
-            termux-setup-storage
 
-            if  [[ $(which tar) && $(which tput) ]]
+            apt-get update &> $NULL && apt-get upgrade -y &> $NULL
+            apt-get install -y tar pigz &> $NULL
+
+            termux-setup-storage  # get storage perm
+
+            if  [[ $(which tar) && $(which pigz) ]]
             then
                 echo -e " $OK Dependencies Installed..."
 
@@ -215,6 +229,7 @@ install_dependencies()
             echo -e " $NOK Network connection failed" >&2
             echo -e " $NOK Check your network connection and try again." >&2
             exit 1
+
         fi
 
     fi
@@ -222,23 +237,28 @@ install_dependencies()
 
 signal()
 {
+    cd $BACKUP_SOURCE
+
     #removing temporary files
-    [[ -f $BACKUP_SOURCE/home.backup ]] && rm -f $BACKUP_SOURCE/home.backup
-    [[ -f $BACKUP_SOURCE/usr.backup ]] && rm -f $BACKUP_SOURCE/usr.backup
+    [[ -f home.backup ]] && rm -f home.backup
+    [[ -f usr.backup ]] && rm -f usr.backup
 
     echo -e "\n $NOK Programme terminated unexpectedly." >&2
-    tput cvvis
+    sleep 1
+    echo -e "\033[?25h"   # show cursor
+    echo -e "\033[?47l"   # Restore normal screen
+
     exit 1
 }
 
+# trapping signal
 trap signal 1 2 3 15 20
 
-
+# Driver Code
 if [ ! $# == 0 ]
 then
     install_dependencies
 
-    tput civis
     case $1 in
         "-h" | "--help" )
 
@@ -250,24 +270,26 @@ then
 
         "-r" | "--restore" )
 
-            restore_prompt ;;
+            restore ;;
 
         "-b" | "--backup" )
+
             backup ;;
 
         * )
-            echo -e " $NOK Invalid option"  >&2
-            echo
+            echo -e " $NOK Invalid option\n"  >&2
 
             help
+
     esac
-    tput cvvis
+
+    echo -e "\033[?25h"   # show cursor
+    echo -e "\033[?47l"   # Restore normal screen
 
 else
     echo -e " $NOK No options provided." >&2
-    echo -e "${off}try 'rewind --help' or 'rewind -h' for help."
+    echo -e "${off} try 'rewind --help' or 'rewind -h' for help."
+
 fi
 
-
 exit 0
-
