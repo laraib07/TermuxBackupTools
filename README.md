@@ -1,4 +1,4 @@
-# Rewind
+# Rewind - A termux backup tool
 
 ![rewind](https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind.png)
 
