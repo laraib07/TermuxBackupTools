@@ -7,7 +7,7 @@ restore termux(an android terminal emulator).
 
 **caution :** Restoring of $PREFIX (i.e usr) is 
 quite complicated. It has binaries that are 
-architecture specific. It means same file on 
+architecture specific. It means same executable on 
 aarch64 and armeabi-v7a will be different.
 To avoid breaking termux , make sure
 * you keep backup up-to-date.
