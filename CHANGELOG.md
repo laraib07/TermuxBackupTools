@@ -1,3 +1,6 @@
+## v4.1
+minor fix and updated readme
+
 ## v4.0
 
 Code improved
