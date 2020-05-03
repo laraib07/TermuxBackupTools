@@ -5,7 +5,7 @@
 Simple bash script to backup and
 restore termux(an android terminal emulator).
 
-** caution : ** Restoring of $PREFIX (i.e usr) is 
+**caution :** Restoring of $PREFIX (i.e usr) is 
 quite complicated. It has binaries that are 
 architecture specific. It means same file on 
 aarch64 and armeabi-v7a will be different.
