@@ -1,3 +1,7 @@
+## v5.0
+* code improved 
+* got rid of some futile functions.
+
 ## v4.1
 minor fix and updated readme
 
