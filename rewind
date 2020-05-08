@@ -70,13 +70,11 @@ function backup() {
             printf  "${NOT_OK} Backing up ${1}\n"
             printf  "${t}${off}Be patient!!!\n\n"
 
-            tar -I pigz -cf "$1".backup "$1" && mv "$1".backup "${BACKUP_TARGET}"
-
-            if [[ $? -eq 0 ]]; then
+            if tar -I pigz -cf "$1".backup "$1" ; then
+                mv "$1".backup "${BACKUP_TARGET}"
                 printf  "${OK} ${1} backed up!!!\a"
+                sleep 1   #to hold backed up msg
             fi
-
-            sleep 1   #to hold backed up msg
             ;;
 
         * )
@@ -104,12 +102,11 @@ function restore() {
                 printf  "${NOT_OK} Restoring ${1}...\n"
                 printf  "${t}${off}Be patient!!!\n\n"
 
-                tar -I pigz -xf "$1".backup
-                rm -rf "$1".backup   # remove copied backup
-
-                printf  "${OK} ${1} restored!!!\n"
-                printf  "${t}${W}start a new session.\a"
-                sleep 1    # hold screen
+                if tar -I pigz -xf "$1".backup ; then
+                    printf  "${OK} ${1} restored!!!\n"
+                    printf  "${t}${W}start a new session.\a"
+                    rm -rf "$1".backup
+                fi
 
             else
                 printf  "${NOT_OK} ${1} backup not found\n" >&2
@@ -174,7 +171,7 @@ function cleanup()
 }
 
 # trapping signal
-trap cleanup 1 2 3 15 20
+trap cleanup  1 2 3 15 20
 
 # installing required programmes
 install_dependencies
