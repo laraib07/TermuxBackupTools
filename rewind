@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v5.0                               #
+#  Rewind v5.1                               #
 #  A CLI tool to backup and restore termux   #
 #  Author : https://github.com/laraib07      #
 #                                            #
@@ -12,20 +12,19 @@
 #variables
 readonly BACKUP_SOURCE='/data/data/com.termux/files'
 readonly BACKUP_TARGET='/storage/emulated/0/Termux/Backup'
+readonly program_name=$(basename "$0")
 
 #colors
-R='\033[1;31m'
-G='\033[1;32m'
-W='\033[1;37m'
-B='\033[1;34m'
-off='\033[0m'
-t='        '
-OK="$W[$G OK $W]"
-NOK="$W[$R !! $W]"
+R='\033[1;31m' # red
+G='\033[1;32m' # green
+W='\033[1;37m' # white bold
+off='\033[0m'  # turn off color
+t='        '   # tab
+OK=" $W[$G OK $W]"
+NOT_OK=" $W[$R !! $W]"
 
 
-banner()
-{
+function show_banner() {
     printf  "\033[?47h"        # save current screen
     printf  "\033[2J\033[1;1H" # clear screen
     printf  "\033[?25l\n"      # hide cursor
@@ -38,101 +37,99 @@ banner()
 }
 
 
-help()
-{
-    printf  "${off} Usage: ${W}rewind${off} [-hv] [-r|-b home|usr|both]\n"
-    printf "   -h          print this usage\n"
-    printf "   -v          print version\n"
-    printf "   -b          backup termux\n"
-    printf "   -r          restore texmux\n"
+function show_help() {
+    printf  "${off}Usage: ${W}rewind${off} [-hv] [-r|-b home|usr]\n
+    -h          print this usage
+    -v          print version
+    -b          backup termux
+    -r          restore texmux\n"
 }
 
 
-version()
-{
-    printf "${off}Rewind v5.0\n"
-    printf "A CLI tool to backup and restore termux\n"
-    printf "Author : https://github.com/laraib07\n"
+function show_version() {
+    grep "#$" "$0"  
 }
 
 
-backup()
-{
-    if [[ ! -d "$BACKUP_TARGET" ]]
-    then
-        mkdir -p "$BACKUP_TARGET"
+function error() {
+    printf "${program_name}: $*\n" >&2
+}
+
+
+function backup() {
+    if [[ ! -d "${BACKUP_TARGET}" ]]; then
+        mkdir -p "${BACKUP_TARGET}"
     fi
 
-    cd "$BACKUP_SOURCE"
+    cd "${BACKUP_SOURCE}"
 
     case "$1" in
-        home|usr|both )
-    
-            banner
-            printf  " $NOK Backing up ${1}\n"
+        home|usr )
+
+            show_banner
+            printf  "${NOT_OK} Backing up ${1}\n"
             printf  "${t}${off}Be patient!!!\n\n"
 
-            tar -I pigz -cf "$1".backup "$1" && mv "$1".backup "$BACKUP_TARGET"
+            tar -I pigz -cf "$1".backup "$1" && mv "$1".backup "${BACKUP_TARGET}"
 
-            if [ $? -eq 0 ]
-            then
-                printf  " $OK ${1} backed up!!!\a"
+            if [[ $? -eq 0 ]]; then
+                printf  "${OK} ${1} backed up!!!\a"
             fi
 
             sleep 1   #to hold backed up msg
             ;;
 
-        * ) 
-            printf " $NOK invalid argument\n" >&2
-            printf "${off} Usage : ${W}rewind${off} -b [home|usr|both]\n"
+        * )
+            error "invalid argument"
+            show_help
             exit 1
             ;;
     esac
 }
 
 
-restore()
-{
+function restore() {
     case "$1" in
-        home|usr|both )
+        home|usr )
 
-            banner
-            if [[ -f "$BACKUP_TARGET"/"$1".backup ]]
+            show_banner
+            if [[ -f "${BACKUP_TARGET}"/"$1".backup ]]
             then
-                cd "$BACKUP_SOURCE"
+                cd "${BACKUP_SOURCE}"
                 # copying backup to source to avoid
                 # any permission issue or error
-                cp "$BACKUP_TARGET"/"$1".backup .
+                cp "${BACKUP_TARGET}"/"$1".backup .
                 chmod 777 "$1".backup
 
-                printf  " $NOK Restoring ${1}...\n"
+                printf  "${NOT_OK} Restoring ${1}...\n"
                 printf  "${t}${off}Be patient!!!\n\n"
 
-                tar -I pigz -xf "$1".backup 
+                tar -I pigz -xf "$1".backup
                 rm -rf "$1".backup   # remove copied backup
 
-                printf  " $OK ${1} restored!!!\n"
+                printf  "${OK} ${1} restored!!!\n"
                 printf  "${t}${W}start a new session.\a"
-                sleep 1    # hold screen 
+                sleep 1    # hold screen
 
             else
-                printf  " $NOK ${1} backup not found\n" >&2
+                printf  "${NOT_OK} ${1} backup not found\n" >&2
+                sleep 1    # hold screen
                 exit 1
             fi
             ;;
 
-        * ) 
-            printf  " $NOK invalid argument\n" >&2
-            printf "Usage : ${W}rewind${off} -$OPTARG [home|usr|both]\n"
+        * )
+            error "invalid argument"
+            show_help
             exit 1
             ;;
     esac
 }
 
 
-install_dependencies()
+function install_dependencies()
 {
-    if  ! [[ $(which tar) && $(which pigz) ]]
+    if  ! [[ $(type -P tar) && $(type -P pigz) ]]
     then
         local null
         null="/dev/null"
@@ -140,77 +137,67 @@ install_dependencies()
         # checking net connection
         if ping -q -w 1 -c 1 www.google.com &> "$null"
         then
-            printf  " $NOK Installing Dependencies...\n"
+            printf  "${NOT_OK} Installing Dependencies...\n"
 
             apt-get update &> "$null" && apt-get upgrade -y &> "$null"
             apt-get install -y tar pigz &> "$null"
 
             termux-setup-storage  # get storage perm
 
-            if  [[ $(which tar) && $(which pigz) ]]
+            if  [[ $(type -P tar) && $(type -P pigz) ]]
             then
-                printf  " $OK Dependencies Installed...\n"
+                printf  "${OK} Dependencies Installed...\n"
             fi
 
         else
-            printf  " $NOK network connection failed\n" >&2
-            printf  " $NOK check your network connection and try again.\n" >&2
+            error "network connection failed"
             exit 1
         fi
     fi
 }
 
-
-signal()
+# remove temporary files in BACKUP_SOURCE if any signal received.
+function cleanup()
 {
-    cd $BACKUP_SOURCE
+    cd "${BACKUP_SOURCE}"
 
-    #removing temporary files
-    [[ -f home.backup ]] && rm -f home.backup
-    [[ -f usr.backup ]] && rm -f usr.backup
+    # removing temporary files
+    for dir in {home,usr};do
+        [[ -f "${dir}".backup ]] && rm -f "${dir}".backup
+    done
 
-    printf  "\n $NOK programme terminated unexpectedly\n" >&2
-    sleep 1
-    printf  "\033[?25h"   # show cursor
-    printf  "\033[?47l"   # Restore normal screen
+    error  "\nprogramme terminated unexpectedly\n"
+    printf "\033[?25h"   # show cursor
+    printf "\033[?47l"   # Restore normal screen
 
-    exit 1
+    sleep 1 && exit 1
 }
 
 # trapping signal
-trap signal 1 2 3 15 20
+trap cleanup 1 2 3 15 20
+
+# installing required programmes
+install_dependencies
 
 # Driver Code
-if [ ! "$#" == 0 ]
-then
-    install_dependencies
-
-    while getopts ":hvr:b:" arg ; do
- 
-    case "$arg" in
-        h ) help ;;
-        v ) version ;;
+while getopts ":hvr:b:" arg ; do
+    case "${arg}" in
+        h ) show_help ;;
+        v ) show_version ;;
         r ) restore "$OPTARG" ;;
         b ) backup "$OPTARG" ;;
-        \? )
-            printf  " $NOK unknown option\n"  >&2
-            exit 1
-            ;;
-
-        : ) 
-            printf "option -$OPTARG requires an argument.\n" >&2
-            printf "Usage : ${W}rewind${off} -$OPTARG [home|usr|both]\n" >&2
-            exit 1
+        \?) error "unknown option\n"; exit 1 ;;
+        : ) error "no arguments"; show_help; exit 1 ;;
     esac
-    done
+done
 
-    printf  "\033[?25h"   # show cursor
-    printf  "\033[?47l"   # Restore normal screen
-
-else
-    printf " $NOK no options provided\n" >&2
+if [[ -z "$1" ]]; then
+    error "no options provided"
     printf "${off} try 'rewind -h' for help.\n"
     exit 1
 fi
+
+printf  "\033[?25h"   # show cursor
+printf  "\033[?47l"   # Restore normal screen
 
 exit 0
