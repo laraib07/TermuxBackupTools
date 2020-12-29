@@ -2,7 +2,7 @@
 
 #********************************************#
 #                                            #
-#  Rewind v5.1                               #
+#  Rewind v6.0                               #
 #  A CLI tool to backup and restore termux   #
 #  Author : https://github.com/laraib07      #
 #                                            #
@@ -10,44 +10,43 @@
 
 
 #variables
-readonly BACKUP_SOURCE='/data/data/com.termux/files'
-readonly BACKUP_TARGET='/storage/emulated/0/Termux/Backup'
+readonly SOURCE="$HOME"
+readonly DEST='/storage/emulated/0/Termux/Backup'
+readonly PKGS_SRC="$PREFIX/var/log/apt/history.log"
 readonly program_name=$(basename "$0")
 
 #colors
-R='\033[1;31m' # red
-G='\033[1;32m' # green
-W='\033[1;37m' # white bold
-off='\033[0m'  # turn off color
-t='        '   # tab
-OK=" $W[$G OK $W]"
-NOT_OK=" $W[$R !! $W]"
+R='\e[1;31m' # red
+G='\e[1;32m' # green
+W='\e[1;37m' # white bold
+off='\e[0m'  # turn off color
+t='\e[7C'    # tab
+OK=" $W[$G - $W]$off"
+EXC=" $W[$R ! $W]$off"
 
 
-function show_banner() {
-    printf  "\033[?47h"        # save current screen
-    printf  "\033[2J\033[1;1H" # clear screen
-    printf  "\033[?25l\n"      # hide cursor
-    printf  " $W╭────────────────────────────────────╮\n"
-    printf  " │ $R   █▀▀█ █▀▀  █   █  ▀  █▀▀▄ █▀▀▄ $W  ├─╮\n"
-    printf  " │ $R   █▄▄▀ █▀▀  █▄█▄█ ▀█▀ █  █ █  █ $W  │ │\n"
-    printf  " │ $R   ▀ ▀▀ ▀▀▀   ▀ ▀  ▀▀▀ ▀  ▀ ▀▀▀  $W  │ │\n"
-    printf  " ╰─┬──────────────────────────────────╯ │ \n"
-    printf  "   ╰────────────────────────────────────╯\n\n"
-}
+# Banner
+read -r -d '' BANNER << EOF
+$W■──────────────────────────────────■
+│$R   █▀▀█ █▀▀ █   █  ▀  █▀▀▄ █▀▀▄  $W │
+│$R   █▄▄▀ █▀▀ █▄█▄█ ▀█▀ █  █ █  █  $W │
+│$R   ▀ ▀▀ ▀▀▀  ▀ ▀  ▀▀▀ ▀  ▀ ▀▀▀   $W │
+■──────────────────────────────────■$off
+EOF
 
 
+# FUNCTIONS
 function show_help() {
-    printf  "${off}Usage: ${W}rewind${off} [-hv] [-r|-b home|usr]\n
+    printf  "${off}Usage: ${W}rewind${off} [-hvb] [-r home|pkgs]\n
     -h          print this usage
     -v          print version
-    -b          backup termux
-    -r          restore texmux\n"
+    -b          backup home and packages
+    -r          restore home or packages\n"
 }
 
 
 function show_version() {
-    grep "#$" "$0"  
+    grep "#$" "$0"
 }
 
 
@@ -56,62 +55,97 @@ function error() {
 }
 
 
+function check_internet() {
+    if ping -q -w 1 -c 1 8.8.8.8 &> /dev/null;then
+        return 0
+    fi
+    return 1
+}
+
+
 function backup() {
-    if [[ ! -d "${BACKUP_TARGET}" ]]; then
-        mkdir -p "${BACKUP_TARGET}"
+    if [[ ! -d "${DEST}" ]]; then
+        mkdir -p "${DEST}"
     fi
 
-    cd "${BACKUP_SOURCE}"
+    printf "${BANNER}\n\n"
 
-    case "$1" in
-        home|usr )
+    # Backing up home directory
+    printf  "${EXC} Backing up home\n"
+    printf  "${t}${off}Be patient...\n\n"
 
-            show_banner
-            printf  "${NOT_OK} Backing up ${1}\n"
-            printf  "${t}${off}Be patient!!!\n\n"
+    if tar -I pigz -cf ${DEST}/backup.tmp -C ${SOURCE} . ; then
+        mv ${DEST}/backup.tmp ${DEST}/home.bak
+        printf  "${OK} home backed up\n\n"
 
-            if tar -I pigz -cf "$1".backup "$1" ; then
-                mv "$1".backup "${BACKUP_TARGET}"
-                printf  "${OK} ${1} backed up!!!\a"
-                sleep 1   #to hold backed up msg
-            fi
-            ;;
+    else
+        error "backup failed."
+    fi
 
-        * )
-            error "invalid argument"
-            show_help
-            exit 1
-            ;;
-    esac
+    # backing up packages manually installed.
+    printf  "${EXC} Backing up packages\n\n"
+
+    declare -a packages
+
+    for pkg in $(grep -E ' install | remove ' ${PKGS_SRC}); do
+
+        if [[ ! $pkg =~ (Commandline:|-y|apt-get|apt|install|remove) ]]; then
+
+            packages+=($pkg)
+        fi
+    done
+
+    printf ""  > ${DEST}/pkgs.bak
+
+    while read -r value pkg; do
+
+      if (( $value % 2 == 1 ));then
+          printf "${t}${pkg}\n"
+          printf "${pkg}\n"  >> ${DEST}/pkgs.bak
+      fi
+    done < <(for i in ${packages[@]}; do
+
+        printf "$i\n"
+    done | sort | uniq -c)
+
+    printf  "\n${OK} Packages backed up\n\a"
 }
 
 
 function restore() {
+    printf "${BANNER}\n"
+
     case "$1" in
-        home|usr )
+        home )
 
-            show_banner
-            if [[ -f "${BACKUP_TARGET}"/"$1".backup ]]
+            if [[ -f "${DEST}"/home.bak ]]
             then
-                cd "${BACKUP_SOURCE}"
-                # copying backup to source to avoid
-                # any permission issue or error
-                cp "${BACKUP_TARGET}"/"$1".backup .
-                chmod 777 "$1".backup
+                printf  "${EXC} Restoring home\n"
+                printf  "${t}Be patient...\n\n"
 
-                printf  "${NOT_OK} Restoring ${1}...\n"
-                printf  "${t}${off}Be patient!!!\n\n"
-
-                if tar -I pigz -xf "$1".backup ; then
-                    printf  "${OK} ${1} restored!!!\n"
-                    printf  "${t}${W}start a new session.\a"
-                    rm -rf "$1".backup
+                if tar -I pigz -xf ${DEST}/home.bak -C ${SOURCE} ; then
+                    printf  "${OK} home restored\n"
+                    printf  "${t}start a new session.\n\a"
                 fi
 
             else
-                printf  "${NOT_OK} ${1} backup not found\n" >&2
-                sleep 1    # hold screen
+                error "home backup not found"
                 exit 1
+            fi
+            ;;
+
+        pkgs )
+            if check_internet && [[ -f "${DEST}/pkgs.bak" ]]; then
+                printf  "${EXC} Restoring packages\n"
+                printf  "${t}Be patient...\n\n"
+
+                if apt-get install -y $(awk '{print $1}' ${DEST}/pkgs.bak ) ; then
+
+                    printf  "${OK} packages restored\n"
+                    printf  "${t}start a new session.\n\a"
+                fi
+            else
+                error 'no internet connection.'
             fi
             ;;
 
@@ -126,75 +160,65 @@ function restore() {
 
 function install_dependencies()
 {
-    if  ! [[ $(type -P tar) && $(type -P pigz) ]]
-    then
-        local null
-        null="/dev/null"
+    # checking net connection
+    if check_internet ; then
+        printf  "${EXC} Installing Dependencies...\n"
 
-        # checking net connection
-        if ping -q -w 1 -c 1 www.google.com &> "$null"
-        then
-            printf  "${NOT_OK} Installing Dependencies...\n"
+        apt-get update  && apt-get upgrade -y
+        apt-get install -y tar pigz
 
-            apt-get update &> "$null" && apt-get upgrade -y &> "$null"
-            apt-get install -y tar pigz &> "$null"
-
-            termux-setup-storage  # get storage perm
-
-            if  [[ $(type -P tar) && $(type -P pigz) ]]
-            then
-                printf  "${OK} Dependencies Installed...\n"
-            fi
-
-        else
-            error "network connection failed"
-            exit 1
+        if  [[ $(type -P tar) && $(type -P pigz) ]];then
+            printf  "${OK} Dependencies Installed...\n"
         fi
+
+    else
+        error "network connection failed"
+        exit 1
     fi
 }
 
-# remove temporary files in BACKUP_SOURCE if any signal received.
-function cleanup()
-{
-    cd "${BACKUP_SOURCE}"
-
-    # removing temporary files
-    for dir in {home,usr};do
-        [[ -f "${dir}".backup ]] && rm -f "${dir}".backup
-    done
-
+# remove temporary files in SOURCE if any signal received.
+function cleanup() {
+    rm -f "${DEST}/backup.tmp"
     error  "\nprogramme terminated unexpectedly\n"
-    printf "\033[?25h"   # show cursor
-    printf "\033[?47l"   # Restore normal screen
-
-    sleep 1 && exit 1
+    exit 1
 }
 
 # trapping signal
 trap cleanup  1 2 3 15 20
 
 # installing required programmes
-install_dependencies
+if  ! [[ $(type -P tar) && $(type -P pigz) ]];then
+    install_dependencies
+fi
+
+
+# checking storage permission
+while ! [ -w /storage/emulated/0/ ];do
+    printf  "${EXC} Grant storage Permission${off}\n"
+    termux-setup-storage
+    sleep 5
+done
+
 
 # Driver Code
-while getopts ":hvr:b:" arg ; do
+while getopts ":hvbr:" arg ; do
     case "${arg}" in
         h ) show_help ;;
         v ) show_version ;;
+        b ) backup ;;
         r ) restore "$OPTARG" ;;
-        b ) backup "$OPTARG" ;;
         \?) error "unknown option\n"; exit 1 ;;
         : ) error "no arguments"; show_help; exit 1 ;;
     esac
 done
 
+
 if [[ -z "$1" ]]; then
     error "no options provided"
-    printf "${off} try 'rewind -h' for help.\n"
+    printf "try 'rewind -h' for help.\n"
     exit 1
 fi
 
-printf  "\033[?25h"   # show cursor
-printf  "\033[?47l"   # Restore normal screen
 
 exit 0

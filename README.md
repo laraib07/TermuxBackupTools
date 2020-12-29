@@ -1,17 +1,10 @@
-# Rewind - A termux backup tool
+# Rewind - A termux backup/restore tool
 
-![rewind](https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind.png)
 
 Simple bash script to backup and
-restore termux(an android terminal emulator).
+restore home directory and packages installed manually.
 
-**caution :** Restoring of $PREFIX (i.e usr) is 
-quite complicated. It has binaries that are 
-architecture specific. It means same executable on 
-aarch64 and armeabi-v7a will have different binaries.
-To avoid breaking termux , make sure
-* you keep backup up-to-date.
-* restore backup on same architecture.
+![rewind](rewind.png)
 
 
 ### created by [Laraib07](https://github.com/laraib07)
@@ -46,12 +39,12 @@ curl -O https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewi
 
 ## Usage
 
-Usage : **rewind**  [option]
+Usage : **rewind**  [-hvb] [-r home|pkgs]
 
 option |   Description
 :-----:|:---------------------------:
-  -h   |     print this usage
-  -v   |     print version
-  -b   |     take termux backup
-  -r   |     restore texmux
+ -h    |    print this usage
+ -v    |    print version
+ -b    |    backup home and packages
+ -r    |    restore home or packages
  
