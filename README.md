@@ -39,12 +39,12 @@ curl -O https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewi
 
 ## Usage
 
-Usage : **rewind**  [-hvb] [-r home|pkgs]
+Usage : **rewind**  [-hv] [-b|-r [home|pkgs]]
 
-option |   Description
-:-----:|:---------------------------:
- -h    |    print this usage
- -v    |    print version
- -b    |    backup home and packages
- -r    |    restore home or packages
- 
+option           |   Description
+:---------------:|:---------------------------:
+ -h              |    print this usage
+ -v              |    print version
+ -b [home|pkgs]  |    backup home and/or packages
+ -r [home|pkgs]  |    restore home and/or packages
+

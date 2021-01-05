@@ -37,11 +37,11 @@ EOF
 
 # FUNCTIONS
 function show_help() {
-    printf  "${off}Usage: ${W}rewind${off} [-hvb] [-r home|pkgs]\n
-    -h          print this usage
-    -v          print version
-    -b          backup home and packages
-    -r          restore home or packages\n"
+    printf  "${off}Usage: ${W}rewind${off} [-hv] [-b|-r [home|pkgs]]\n
+    -h               print this usage
+    -v               print version
+    -b [home|pkgs]   backup home and/or packages
+    -r [home|pkgs]   restore home and/or packages\n"
 }
 
 
@@ -63,14 +63,7 @@ function check_internet() {
 }
 
 
-function backup() {
-    if [[ ! -d "${DEST}" ]]; then
-        mkdir -p "${DEST}"
-    fi
-
-    printf "${BANNER}\n\n"
-
-    # Backing up home directory
+function backup_home() {
     printf  "${EXC} Backing up home\n"
     printf  "${t}${off}Be patient...\n\n"
 
@@ -81,8 +74,10 @@ function backup() {
     else
         error "backup failed."
     fi
+}
 
-    # backing up packages manually installed.
+
+function backup_pkgs(){
     printf  "${EXC} Backing up packages\n\n"
 
     declare -a packages
@@ -112,43 +107,87 @@ function backup() {
 }
 
 
-function restore() {
-    printf "${BANNER}\n"
+function backup() {
+    if [[ ! -d "${DEST}" ]]; then
+        mkdir -p "${DEST}"
+    fi
+
+    printf "${BANNER}\n\n"
 
     case "$1" in
         home )
-
-            if [[ -f "${DEST}"/home.bak ]]
-            then
-                printf  "${EXC} Restoring home\n"
-                printf  "${t}Be patient...\n\n"
-
-                if tar -I pigz -xf ${DEST}/home.bak -C ${SOURCE} ; then
-                    printf  "${OK} home restored\n"
-                    printf  "${t}start a new session.\n\a"
-                fi
-
-            else
-                error "home backup not found"
-                exit 1
-            fi
+            backup_home
             ;;
-
         pkgs )
-            if check_internet && [[ -f "${DEST}/pkgs.bak" ]]; then
-                printf  "${EXC} Restoring packages\n"
-                printf  "${t}Be patient...\n\n"
-
-                if apt-get install -y $(awk '{print $1}' ${DEST}/pkgs.bak ) ; then
-
-                    printf  "${OK} packages restored\n"
-                    printf  "${t}start a new session.\n\a"
-                fi
-            else
-                error 'no internet connection.'
-            fi
+            backup_pkgs
             ;;
+        '' )
+            backup_home
+            backup_pkgs
+            ;;
+        * )
+            error "invalid argument"
+            show_help
+            exit 1
+            ;;
+    esac
+}
 
+
+function restore_home() {
+    if [[ -f "${DEST}"/home.bak ]]; then
+        printf  "${EXC} Restoring home\n"
+        printf  "${t}Be patient...\n\n"
+
+        if tar -I pigz -xf ${DEST}/home.bak -C ${SOURCE} ; then
+            printf  "${OK} home restored\n"
+            printf  "${t}start a new session.\n\a"
+        fi
+
+    else
+        error "home backup not found"
+        exit 1
+    fi
+}
+
+
+function restore_pkgs() {
+    if ! check_internet; then
+        error 'no internet connection.'
+        exit 1
+    fi
+
+    if [[ -f "${DEST}/pkgs.bak" ]]; then
+        printf  "${EXC} Restoring packages\n"
+        printf  "${t}Be patient...\n\n"
+
+        if apt-get install -y $(awk '{print $1}' ${DEST}/pkgs.bak ) ; then
+
+            printf  "${OK} packages restored\n"
+            printf  "${t}start a new session.\n\a"
+        fi
+
+    else
+        error "packages backup not found"
+        exit 1
+    fi
+}
+
+
+function restore() {
+    printf "${BANNER}\n\n"
+
+    case "$1" in
+        home )
+            restore_home
+            ;;
+        pkgs )
+            restore_pkgs
+            ;;
+        '' )
+            restore_home
+            restore_pkgs
+            ;;
         * )
             error "invalid argument"
             show_help
@@ -177,6 +216,18 @@ function install_dependencies()
     fi
 }
 
+
+function getopts_get_optional_argument() {
+    eval next_token=\${$OPTIND}
+    if [[ -n $next_token && $next_token != -* ]]; then
+        OPTIND=$((OPTIND + 1))
+        OPTARG=$next_token
+    else
+        OPTARG=""
+    fi
+}
+
+
 # remove temporary files in SOURCE if any signal received.
 function cleanup() {
     rm -f "${DEST}/backup.tmp"
@@ -202,12 +253,18 @@ done
 
 
 # Driver Code
-while getopts ":hvbr:" arg ; do
+while getopts ":hvbr" arg ; do
     case "${arg}" in
         h ) show_help ;;
         v ) show_version ;;
-        b ) backup ;;
-        r ) restore "$OPTARG" ;;
+        b )
+            getopts_get_optional_argument $@
+            backup "${OPTARG}"
+            ;;
+        r )
+            getopts_get_optional_argument $@
+            restore "${OPTARG}"
+            ;;
         \?) error "unknown option\n"; exit 1 ;;
         : ) error "no arguments"; show_help; exit 1 ;;
     esac
