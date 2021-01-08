@@ -20,7 +20,7 @@ R='\e[1;31m' # red
 G='\e[1;32m' # green
 W='\e[1;37m' # white bold
 off='\e[0m'  # turn off color
-t='\e[7C'    # tab
+t='       '    # tab
 OK=" $W[$G - $W]$off"
 EXC=" $W[$R ! $W]$off"
 
@@ -80,28 +80,39 @@ function backup_home() {
 function backup_pkgs(){
     printf  "${EXC} Backing up packages\n\n"
 
-    declare -a packages
-
-    for pkg in $(grep -E ' install | remove ' ${PKGS_SRC}); do
-
-        if [[ ! $pkg =~ (Commandline:|-y|apt-get|apt|install|remove) ]]; then
-
-            packages+=($pkg)
+    # Grep pkgs and create two arrays
+    # one of installed pkgs and one of removed pkgs
+    while IFS= read -r line; do
+        line=${line/-y/}
+        if [[ "$line" =~ ' install ' ]]; then
+            installed+=(${line##* install })
+        else
+            removed+=(${line##* remove })
         fi
+    done < <(grep -E ' install | remove ' ${PKGS_SRC})
+
+
+    # For every removed pkg, if it's also in installed pkgs
+    # remove it from installed pkgs
+    for pkg in "${removed[@]}";do
+        for i in "${!installed[@]}";do
+            if [[ "${installed[$i]}" == "$pkg" ]]; then
+                unset installed[$i]
+                break
+            fi
+        done
     done
 
-    printf ""  > ${DEST}/pkgs.bak
 
-    while read -r value pkg; do
+    # Remove any duplicates
+    # And put installed pkgs in output
+    declare -A tmp_array
 
-      if (( $value % 2 == 1 ));then
-          printf "${t}${pkg}\n"
-          printf "${pkg}\n"  >> ${DEST}/pkgs.bak
-      fi
-    done < <(for i in ${packages[@]}; do
+    for i in "${installed[@]}"; do
+        [[ $i ]] && IFS=" " tmp_array["${i:- }"]=1
+    done
 
-        printf "$i\n"
-    done | sort | uniq -c)
+    printf "$t%s\n" "${!tmp_array[@]}" | tee  ${DEST}/pkgs.bak
 
     printf  "\n${OK} Packages backed up\n\a"
 }
