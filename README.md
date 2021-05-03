@@ -13,7 +13,6 @@ restore home directory and packages installed manually.
 
 Just copy paste this in your termux.
 
-1.
 
 ```bash
 wget https://raw.githubusercontent.com/laraib07/TermuxBackupTools/master/rewind && chmod u+x rewind && mv rewind $PREFIX/bin/
@@ -33,6 +32,6 @@ option           |   Description
 :---------------:|:---------------------------:
  -h              |    print this usage
  -v              |    print version
- -b `[home|pkgs]`|    backup home and/or packages
- -r `[home|pkgs]`|    restore home and/or packages
+ -b [home\|pkgs] |    backup home and/or packages
+ -r [home\|pkgs] |    restore home and/or packages
 
