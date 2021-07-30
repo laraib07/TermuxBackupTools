@@ -65,11 +65,12 @@ function check_internet() {
 
 function backup_home() {
     printf  "${EXC} Backing up home\n"
-    printf  "${t}${off}Be patient...\n\n"
+    printf  "${t}Be patient...\n\n"
 
     if tar -I pigz -cf ${DEST}/backup.tmp -C ${SOURCE} . ; then
         mv ${DEST}/backup.tmp ${DEST}/home.bak
-        printf  "${OK} home backed up\n\n"
+        printf  "${OK} home backed up and can be found in\n"
+        printf  "${t}${DEST}/home.bak\n\n"
 
     else
         error "backup failed."
@@ -112,9 +113,10 @@ function backup_pkgs(){
         [[ $i ]] && IFS=" " tmp_array["${i:- }"]=1
     done
 
-    printf "$t%s\n" "${!tmp_array[@]}" | tee  ${DEST}/pkgs.bak
+    printf "${t}%s\n" "${!tmp_array[@]}" | tee  ${DEST}/pkgs.bak
 
-    printf  "\n${OK} Packages backed up\n\a"
+    printf  "\n${OK} Packages backed up and can be found in\n"
+    printf  "${t}${DEST}/pkgs.bak\n\n"
 }
 
 
@@ -152,11 +154,11 @@ function restore_home() {
 
         if tar -I pigz -xf ${DEST}/home.bak -C ${SOURCE} ; then
             printf  "${OK} home restored\n"
-            printf  "${t}start a new session.\n\a"
+            printf  "${t}start a new session.\n\n"
         fi
 
     else
-        error "home backup not found"
+        error "home backup not found in ${DEST}"
         exit 1
     fi
 }
@@ -175,11 +177,11 @@ function restore_pkgs() {
         if apt-get install -y $(awk '{print $1}' ${DEST}/pkgs.bak ) ; then
 
             printf  "${OK} packages restored\n"
-            printf  "${t}start a new session.\n\a"
+            printf  "${t}start a new session.\n\n"
         fi
 
     else
-        error "packages backup not found"
+        error "packages backup not found in ${DEST}"
         exit 1
     fi
 }
