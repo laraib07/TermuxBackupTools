@@ -3,6 +3,7 @@
 
 Simple bash script to backup and
 restore home directory and packages installed manually.
+Works across devices.
 
 ![rewind](rewind.png)
 
