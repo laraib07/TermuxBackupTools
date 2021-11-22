@@ -89,8 +89,9 @@ function backup_pkgs(){
             installed+=(${line##* install })
         else
             removed+=(${line##* remove })
+            removed+=(${line##* purge })
         fi
-    done < <(grep -E ' install | remove ' ${PKGS_SRC})
+    done < <(grep -E ' install | remove | purge' ${PKGS_SRC})
 
 
     # For every removed pkg, if it's also in installed pkgs
